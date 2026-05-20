@@ -68,10 +68,147 @@ def populate_data():
 
 
 
+#function to list transactions
+
+def list_transactions():
+    connection = connect_db()
+    cursor = connection.cursor()
+
+    cursor.execute("""SELECT t.id, t.date, t.description, t.amount, t.type, c.name FROM transactions AS t JOIN categories AS c ON t.category_id = c.id ORDER BY t.date """)
+
+    rows = cursor.fetchall()
+
+
+    print("ID | Date       | Description            | Amount   | Type    | Category")
+    print("-" * 75)
+    for row in rows:
+        print(f"{row[0]:<2} | {row[1]:<10} | {row[2]:<22} | €{row[3]:<7.2f} | {row[4]:<7} | {row[5]}")
+
+    connection.close()
+
+
+# add transaction function
+def add_transaction():
+
+    category = 0
+    transaction_type = ""
+
+    print("\n1. Food \n2. Transport \n3. Salary \n4. Entertainment")
+
+    choice = input("Select a category: \n")
+
+    match choice:
+
+        case "1":
+            category = 1
+            transaction_type = "expense"
+
+        case "2":
+            category = 2
+            transaction_type = "expense"
+
+        case "3":
+            category = 3
+            transaction_type = "income"
+
+        case "4":
+            category = 4
+            transaction_type = "expense"
+
+        case _:
+            print("Invalid option.")
+            return
+
+    date = input("Enter date (YYYY-MM-DD): ")
+    description = input("Enter description: ")
+    amount = float(input("Enter amount: "))
+
+    connection = connect_db()
+    cursor = connection.cursor()
+
+    cursor.execute("""INSERT INTO transactions (date, description, amount, type, category_id) VALUES (?, ?, ?, ?, ?)""", (date, description, amount, transaction_type, category))
+
+    connection.commit()
+    connection.close()
+
+    print("Transaction added successfully. \n")
+    
+
+#summary function
+def summary():
+    connection = connect_db()
+    cursor = connection.cursor()
+
+    cursor.execute("""SELECT SUM(amount) FROM transactions WHERE type = 'income'""")
+    total_income = cursor.fetchone()[0]
+
+    cursor.execute("""SELECT SUM(amount) FROM transactions WHERE type = 'expense'""")
+    total_expenses = cursor.fetchone()[0]
+
+    if total_income is None:
+        total_income = 0
+
+    if total_expenses is None:
+        total_expenses = 0
+
+    net_balance = total_income - total_expenses
+
+    print(f"\n=== Summary === \nTotal Income:   €{total_income:.2f} \nTotal Expenses:   €{total_expenses:.2f} \nNet Balance:    €{net_balance:.2f}")
+
+    connection.close()
+
+
+#delete function
+def delete_transaction():
+
+    list_transactions()
+
+    try:
+        transaction_id = int(input("\nEnter transaction ID to delete: "))
+    except ValueError:
+        print("Invalid ID.")
+        return
+
+    connection = connect_db()
+    cursor = connection.cursor()
+
+    cursor.execute("""DELETE FROM transactions WHERE id = ?""", (transaction_id,))
+    connection.commit()
+
+    if cursor.rowcount == 0:
+        print("Transaction not found. \n")
+
+    else:
+        print("Transaction deleted successfully. \n")
+
+    connection.close()
+
+
 #command line interface function
 
 def run_cli():
-    print("Finance Tracker Started")
+    while True:
+
+        print("\n=== Personal Finance Tracker === \n1. List Transactions \n2. Add Transaction \n3. Summary \n4. Delete Transaction \n5. Exit \n")
+
+
+        choice = input("Choose an option: ")
+
+        match choice:
+           case "1":
+                list_transactions()
+           case "2":
+                add_transaction()
+           case "3":
+                summary()
+           case "4":
+                delete_transaction()
+           case "5":
+                print("Bye Bye \n")
+                break
+           case _:
+                print("Invalid option.")
+            
 
 
 #main - like using it due to c++
