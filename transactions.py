@@ -9,7 +9,11 @@ def list_transactions():
     connection = connect_db()
     cursor = connection.cursor()
 
-    cursor.execute("""SELECT t.id, t.date, t.description, t.amount, t.type, c.name FROM transactions AS t JOIN categories AS c ON t.category_id = c.id ORDER BY t.date """)
+    cursor.execute("""SELECT t.id, t.date, t.description, t.amount, t.type, c.name 
+                   FROM transactions AS t 
+                   JOIN categories AS c 
+                   ON t.category_id = c.id 
+                   ORDER BY t.date """)
 
     rows = cursor.fetchall()
 
@@ -74,7 +78,8 @@ def add_transaction():
     connection = connect_db()
     cursor = connection.cursor()
 
-    cursor.execute("""INSERT INTO transactions (date, description, amount, type, category_id) VALUES (?, ?, ?, ?, ?)""", (date, description, amount, transaction_type, category))
+    cursor.execute("""INSERT INTO transactions (date, description, amount, type, category_id) 
+                   VALUES (?, ?, ?, ?, ?)""", (date, description, amount, transaction_type, category))
 
     connection.commit()
     connection.close()
@@ -132,6 +137,22 @@ def delete_transaction():
     connection.close()
 
 
+def execute_filter(column_name, filter_type):
+    connection = connect_db()
+    cursor = connection.cursor()
+
+    cursor.execute(f"""SELECT t.id, t.date, t.description, t.amount, t.type, c.name 
+                           FROM transactions AS t 
+                           JOIN categories AS c ON t.category_id = c.id 
+                           WHERE {column_name} = ? ORDER BY t.date""", (filter_type,))
+
+    rows = cursor.fetchall()
+    connection.close()
+
+    display_transactions(rows)
+    
+
+
 #function for filter transactions
 def filter_transactions():
 
@@ -144,15 +165,7 @@ def filter_transactions():
         case "1":
             transaction_type = input("Enter type (income/expense): ")
 
-            connection = connect_db()
-            cursor = connection.cursor()
-
-            cursor.execute("""SELECT t.id, t.date, t.description, t.amount, t.type, c.name FROM transactions AS t JOIN categories AS c ON t.category_id = c.id WHERE t.type = ? ORDER BY t.date""", (transaction_type,))
-
-            rows = cursor.fetchall()
-            connection.close()
-
-            display_transactions(rows)
+            execute_filter("t.type" ,transaction_type)
 
         case "2":
             print("\n1. Food \n2. Transport \n3. Salary \n4. Entertainment \n")
@@ -161,7 +174,8 @@ def filter_transactions():
             connection = connect_db()
             cursor = connection.cursor()
 
-            cursor.execute("""SELECT t.id, t.date, t.description, t.amount, t.type, c.name FROM transactions AS t JOIN categories AS c ON t.category_id = c.id WHERE t.category_id = ? ORDER BY t.date""", (category_id,))
+            
+            execute_filter("t.category_id" ,category_id)
 
             rows = cursor.fetchall()
             connection.close()
@@ -191,7 +205,12 @@ def monthly_report():
     connection = connect_db()
     cursor = connection.cursor()
 
-    cursor.execute("""SELECT c.name, SUM(t.amount) AS total_spent FROM transactions AS t JOIN categories AS c ON t.category_id = c.id WHERE t.type = 'expense' AND strftime('%Y-%m', t.date) = strftime('%Y-%m', 'now') GROUP BY c.name ORDER BY total_spent DESC""")
+    cursor.execute("""SELECT c.name, SUM(t.amount) AS total_spent 
+                   FROM transactions AS t 
+                   JOIN categories AS c ON t.category_id = c.id 
+                   WHERE t.type = 'expense' AND strftime('%Y-%m', t.date) = strftime('%Y-%m', 'now') 
+                   GROUP BY c.name 
+                   ORDER BY total_spent DESC""")
 
     rows = cursor.fetchall()
     connection.close()
